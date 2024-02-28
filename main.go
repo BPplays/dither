@@ -19,14 +19,14 @@ const (
 )
 
 var (
-// 	vertexShaderSource = `
-// #version 150 core
-// in vec2 position;
-// out vec2 TexCoord;
-// void main() {
-//     gl_Position = vec4(position, 0.0, 1.0);
-//     TexCoord = (position + 1.0) / 2.0;
-// }` + "\x00"
+	vertexShaderSource = `
+#version 150 core
+in vec2 position;
+out vec2 TexCoord;
+void main() {
+    gl_Position = vec4(position, 0.0, 1.0);
+    TexCoord = (position + 1.0) / 2.0;
+}` + "\x00"
 
 	fragmentShaderSource = `
 	#version 330
@@ -37,7 +37,7 @@ var (
 	#define PIXEL_SIZE 1.0         // Size of pixels in the shader output
 	#define ENABLE_SORT            // Choose whether to enable the sorting procedures
 	// #define OPTIMISED_KNOLL        // Run an optimised version of the algorithm
-	#define ENABLE 1
+	#define ENABLE 0
 
 
 	#define INFINITY 3.4e38        // 'Infinity'
@@ -72,7 +72,7 @@ var (
 
 #if ENABLE == 1
 
-	const highp vec3 palette[PALETTE_SIZE] = highp vec3[](
+	const vec3 palette[PALETTE_SIZE] = vec3[](
 		RGB8(0x1e1e2e), RGB8(0x313244), RGB8(0x45475a), RGB8(0xf5c2e7)
 	);
 
@@ -211,9 +211,9 @@ func main() {
 
 	// Compile shaders
 	// vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	if err != nil {
+		log.Fatal(err)
+	}
 	fragmentShader, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
 	if err != nil {
 		log.Fatal(err)
@@ -239,12 +239,12 @@ func main() {
 
 
 	// Create textures for iChannel0 and iChannel1
-	iChannel0Texture, err := loadTexture("path/to/iChannel0/image.jpg")
+	iChannel0Texture, err := loadTexture("input.png")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	iChannel1Texture, err := loadTexture("path/to/iChannel1/image.jpg")
+	iChannel1Texture, err := loadTexture("img/matrix_128x128.png")
 	if err != nil {
 		log.Fatal(err)
 	}
