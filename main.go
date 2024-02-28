@@ -18,12 +18,12 @@ const (
 )
 
 var (
-	vertexShaderSource = `
-#version 330
-in vec2 position;
-void main() {
-    gl_Position = vec4(position, 0.0, 1.0);
-}` + "\x00"
+// 	vertexShaderSource = `
+// #version 330
+// in vec2 position;
+// void main() {
+//     gl_Position = vec4(position, 0.0, 1.0);
+// }` + "\x00"
 
 	fragmentShaderSource = `
 	#version 330
@@ -182,10 +182,10 @@ void main() {
 	}
 #endif` + "\x00"
 
-	shaderCode = `
-#version 330
-// ... (Your GLSL shader code)
-`
+// 	shaderCode = `
+// #version 330
+// // ... (Your GLSL shader code)
+// `
 
 	// Specify the paths for your input images
 	inputImagePath   = "input.png"
@@ -215,18 +215,18 @@ func main() {
 	}
 
 	// Compile shaders
-	vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fragmentShader, err := compileShader(shaderCode, gl.FRAGMENT_SHADER)
+	// vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	fragmentShader, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Link shaders into program
 	program := gl.CreateProgram()
-	gl.AttachShader(program, vertexShader)
+	// gl.AttachShader(program, vertexShader)
 	gl.AttachShader(program, fragmentShader)
 	gl.LinkProgram(program)
 	gl.UseProgram(program)
