@@ -288,6 +288,8 @@ func main() {
 	if err := png.Encode(outputFile, img); err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println(gl.GetError())
 }
 
 func compileShader(source string, shaderType uint32) (uint32, error) {
