@@ -1,6 +1,6 @@
 module github.com/BPplays/dither
 
-go 1.12
+go 1.19
 
 require (
 	github.com/disintegration/imaging v1.6.2
