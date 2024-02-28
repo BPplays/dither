@@ -8,14 +8,16 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/disintegration/imaging"
 	"github.com/go-gl/gl/v3.2-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
-const (
-	width  = 800
-	height = 600
+var (
+	width  int
+	height int
 )
+
 
 var (
 // 	vertexShaderSource = `
@@ -203,8 +205,7 @@ func main() {
 	}
 	defer glfw.Terminate()
 
-	glfw.WindowHint(glfw.Visible, glfw.False)
-	window, err := glfw.CreateWindow(width, height, "Offscreen Rendering", nil, nil)
+	window, err := glfw.CreateWindow(1, 1, "Offscreen Rendering", nil, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -213,6 +214,16 @@ func main() {
 	if err := gl.Init(); err != nil {
 		log.Fatal(err)
 	}
+
+	// Load input image
+	inputImage, err := imaging.Open(inputImagePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	width = inputImage.Bounds().Dx()
+	height = inputImage.Bounds().Dy()
+
 
 	// Compile shaders
 	// vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
