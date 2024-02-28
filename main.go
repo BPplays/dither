@@ -3,13 +3,12 @@ package main
 import (
 	"fmt"
 	"image"
-	"image/draw"
 	"image/png"
 	"log"
 	"os"
 	"runtime"
 
-	"github.com/go-gl/gl/v3.3-core/gl"
+	"github.com/go-gl/gl/v3.2-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
@@ -20,12 +19,10 @@ const (
 
 var (
 	vertexShaderSource = `
-#version 150 core
+#version 330
 in vec2 position;
-out vec2 TexCoord;
 void main() {
     gl_Position = vec4(position, 0.0, 1.0);
-    TexCoord = (position + 1.0) / 2.0;
 }` + "\x00"
 
 	fragmentShaderSource = `
@@ -184,6 +181,16 @@ void main() {
 		gl_FragColor = vec4(sourceColor);
 	}
 #endif` + "\x00"
+
+	shaderCode = `
+#version 330
+// ... (Your GLSL shader code)
+`
+
+	// Specify the paths for your input images
+	inputImagePath   = "input.png"
+	matrixImagePath  = "img/matrix_128x128.png"
+	outputImagePath  = "output.png"
 )
 
 func init() {
@@ -196,10 +203,8 @@ func main() {
 	}
 	defer glfw.Terminate()
 
-	glfw.WindowHint(glfw.ContextVersionMajor, 3)
-	glfw.WindowHint(glfw.ContextVersionMinor, 2)
-
-	window, err := glfw.CreateWindow(width, height, "Go OpenGL Shader Example", nil, nil)
+	glfw.WindowHint(glfw.Visible, glfw.False)
+	window, err := glfw.CreateWindow(width, height, "Offscreen Rendering", nil, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -210,93 +215,68 @@ func main() {
 	}
 
 	// Compile shaders
-	// vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
+	vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fragmentShader, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
+	fragmentShader, err := compileShader(shaderCode, gl.FRAGMENT_SHADER)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Link shaders into program
 	program := gl.CreateProgram()
-	// gl.AttachShader(program, vertexShader)
+	gl.AttachShader(program, vertexShader)
 	gl.AttachShader(program, fragmentShader)
 	gl.LinkProgram(program)
 	gl.UseProgram(program)
 
-	// Create a VAO and bind it
-	var vao uint32
-	gl.GenVertexArrays(1, &vao)
-	gl.BindVertexArray(vao)
-
-	// Set up a framebuffer for offscreen rendering
+	// Create an offscreen framebuffer
 	var framebuffer uint32
 	gl.GenFramebuffers(1, &framebuffer)
 	gl.BindFramebuffer(gl.FRAMEBUFFER, framebuffer)
 
+	// Create a texture to render to
+	var texture uint32
+	gl.GenTextures(1, &texture)
+	gl.BindTexture(gl.TEXTURE_2D, texture)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0)
 
-
-	// Create textures for iChannel0 and iChannel1
-	iChannel0Texture, err := loadTexture("input.png")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	iChannel1Texture, err := loadTexture("img/matrix_128x128.png")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-
-
-	// // Create a texture to render to
-	// var texture uint32
-	// gl.GenTextures(1, &texture)
-	// gl.BindTexture(gl.TEXTURE_2D, texture)
-	// gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
-	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-	// gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0)
-
-	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, iChannel0Texture, 0)
-
-	// Check for framebuffer completeness
+	// Check if framebuffer is complete
 	if status := gl.CheckFramebufferStatus(gl.FRAMEBUFFER); status != gl.FRAMEBUFFER_COMPLETE {
-		log.Fatalf("Framebuffer incomplete, status: 0x%x", status)
+		log.Fatalf("Framebuffer error: %x", status)
 	}
 
-	// Main loop
-	for !window.ShouldClose() {
-		// Render to offscreen framebuffer
-		gl.BindFramebuffer(gl.FRAMEBUFFER, framebuffer)
-		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	// Main render loop
+	gl.BindFramebuffer(gl.FRAMEBUFFER, framebuffer)
+	gl.Viewport(0, 0, int32(width), int32(height))
+	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-		// Set up uniforms and render your scene here using the shader program
-		gl.Uniform1i(gl.GetUniformLocation(program, gl.Str("iChannel0\x00")), 0)
-		gl.Uniform1i(gl.GetUniformLocation(program, gl.Str("iChannel1\x00")), 1)
+	// Set up uniforms (iChannel0, iChannel1, etc.)
+	// ...
 
-		// Activate and bind textures
-		gl.ActiveTexture(gl.TEXTURE0)
-		gl.BindTexture(gl.TEXTURE_2D, iChannel0Texture)
+	// Draw a quad (two triangles) to cover the whole framebuffer
+	// ...
 
-		gl.ActiveTexture(gl.TEXTURE1)
-		gl.BindTexture(gl.TEXTURE_2D, iChannel1Texture)
+	// Read pixels from framebuffer
+	pixels := make([]uint8, width*height*4)
+	gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pixels))
 
-		// Render your scene using the shader program
+	// Create an image from pixel data
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	img.Pix = pixels
 
-		// Render to the default framebuffer
-		gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
-		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-
-		// Render the offscreen texture using a full-screen quad
-
-		window.SwapBuffers()
-		glfw.PollEvents()
+	// Save the image to a file
+	outputFile, err := os.Create(outputImagePath)
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer outputFile.Close()
 
-	saveTextureAsImage(iChannel0Texture, "output_image.png")
+	if err := png.Encode(outputFile, img); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func compileShader(source string, shaderType uint32) (uint32, error) {
@@ -320,75 +300,3 @@ func compileShader(source string, shaderType uint32) (uint32, error) {
 
 	return shader, nil
 }
-
-
-
-
-
-func loadTexture(filename string) (uint32, error) {
-	img, err := loadImage(filename)
-	if err != nil {
-		return 0, err
-	}
-
-	var texture uint32
-	gl.GenTextures(1, &texture)
-	gl.BindTexture(gl.TEXTURE_2D, texture)
-
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(img.Bounds().Dx()), int32(img.Bounds().Dy()), 0,
-		gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(img.Pix))
-
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-
-	return texture, nil
-}
-
-func loadImage(filename string) (*image.RGBA, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	img, _, err := image.Decode(file)
-	if err != nil {
-		return nil, err
-	}
-
-	rgba := image.NewRGBA(img.Bounds())
-	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
-
-	return rgba, nil
-}
-
-func saveTextureAsImage(texture uint32, filename string) {
-	width, height := getWindowSize()
-	data := make([]uint8, width*height*4)
-	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
-	gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(data))
-
-	img := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
-	img.Pix = data
-
-	out, err := os.Create(filename)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer out.Close()
-
-	err = png.Encode(out, img)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func getWindowSize() (width, height int) {
-	return glfw.GetCurrentContext().GetFramebufferSize()
-}
-
-
-
-
-
-
